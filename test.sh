@@ -1,1 +1,1 @@
-cargo test --package rust-counter-tutorial -- --nocapture
+cargo test --package UID-discovery-near -- --nocapture
