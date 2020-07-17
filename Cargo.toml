@@ -1,0 +1,24 @@
+[package]
+name = "ontology-dev"
+version = "0.1.0"
+authors = ["lucas7788 <sishsh@163.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+borsh = "0.7.0"
+near-sdk = "1.0.0"
+wee_alloc = { version = "0.4.5", default-features = false, features = [] }
+
+[profile.release]
+codegen-units = 1
+# Tell `rustc` to optimize for small code size.
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
