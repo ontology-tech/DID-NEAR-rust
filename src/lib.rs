@@ -23,20 +23,6 @@ pub struct DID {
 
 #[near_bindgen]
 impl DID {
-    #[init]
-    pub fn new() -> Self {
-        assert!(!env::state_exists(), "Already initialized");
-        let mut did = Self {
-            status: UnorderedMap::default(),
-            contexts: UnorderedMap::default(),
-            public_key: UnorderedMap::default(),
-            controller: UnorderedMap::default(),
-            service: UnorderedMap::default(),
-            created: UnorderedMap::default(),
-            updated: UnorderedMap::default(),
-        };
-        did
-    }
     pub fn reg_id(&mut self) -> bool {
         let account_id = env::signer_account_id();
         let account_id = env::signer_account_pk();
