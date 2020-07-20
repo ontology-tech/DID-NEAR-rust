@@ -1,31 +1,43 @@
 use super::*;
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct ID {
-    context: Vec<Vec<u8>>,
-    id: Vec<u8>,
-    public_key: Vec<PublicKey>,
-    owners: UnorderedSet<String>,
-    controllers: UnorderedSet<String>,
-}
-
-#[derive(BorshDeserialize, BorshSerialize)]
 pub struct PublicKey {
-    id: Vec<u8>,
-    ty: Vec<u8>,
-    controller: Vec<u8>,
-    public_key_hex: Vec<u8>,
+    tp: String,
+    controller: String,
+    public_key_base58: String,
+    de_actived: bool,
+    is_pk_list: bool,
+    is_authentication: bool,
 }
 
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct Attribute {
-    key:Vec<u8>,
-    ty:Vec<u8>,
-    value:Vec<u8>,
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+pub struct PublicKeyJson {
+    id: String,
+    #[serde(rename(serialize = "type", deserialize = "type"))]
+    tp: String,
+    controller: String,
+    #[serde(rename(serialize = "publicKeyBase58", deserialize = "publicKeyBase58"))]
+    public_key_base58: String,
 }
 
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct Controller {
-    threshold:u16,
-    members:Vec<Vec<u8>>,
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+pub struct Service {
+    key: String,
+    #[serde(rename(serialize = "type", deserialize = "type"))]
+    tp: String,
+    #[serde(rename(serialize = "serviceEndpoint", deserialize = "serviceEndpoint"))]
+    service_endpoint: String,
+}
+
+pub struct DocumentJson {
+    #[serde(rename(serialize = "@contexts", deserialize = "@contexts"))]
+    contexts: Vec<String>,
+    id: String,
+    #[serde(rename(serialize = "publicKey", deserialize = "publicKey"))]
+    public_key: Vec<PublicKeyJson>,
+    authentication: Vec<T>,
+    controller: Vec<String>,
+    service: Vec<Service>,
+    created: u32,
+    updated: u32,
 }
