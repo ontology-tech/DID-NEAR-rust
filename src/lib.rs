@@ -32,16 +32,7 @@ impl DID {
         let status = self.status.get(&did);
         assert!(status.is_none());
         self.status.insert(&did, &Status::VALID);
-        self.public_key.insert(&did, &PublicKey::new(account_pk));
-    }
-
-    pub fn reg_id_with_controller(&mut self, id: AccountId) {
-        let account_id = env::signer_account_id();
-        let did = gen_did(&account_id);
-        let status = self.status.get(&did);
-        assert!(status.is_none());
-        self.status.insert(&did, &Status::VALID);
-        self.controller.insert(&did, &vec![id]);
+        self.public_key.insert(&did, &PublicKey::new_pk_and_auth(&did, account_pk));
     }
 }
 

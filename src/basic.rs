@@ -1,10 +1,10 @@
 use super::*;
+use base58::*;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub enum Status {
-    NotExist = 0x00,
-    VALID = 0x01,
-    DeActive = 0x02,
+    VALID = 0x00,
+    DeActive = 0x01,
 }
 
 const FIELD_CONTEXT: u8 = 0;
@@ -25,11 +25,11 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
-    pub fn new(pk: Vec<u8>) -> Self {
+    pub fn new_pk_and_auth(controller: &str, pk: Vec<u8>) -> Self {
         PublicKey {
             tp: "".to_string(),
-            controller: "".to_string(),
-            public_key_base58: "".to_string(),
+            controller: controller.to_string(),
+            public_key_base58: pk.to_base58(),
             de_actived: false,
             is_pk_list: true,
             is_authentication: true,
