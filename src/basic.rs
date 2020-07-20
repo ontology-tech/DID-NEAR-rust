@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(BorshDeserialize, BorshSerialize)]
 pub enum Status {
     NotExist = 0x00,
     VALID = 0x01,
