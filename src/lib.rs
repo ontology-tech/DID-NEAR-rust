@@ -8,13 +8,16 @@ use basic::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-// add the following attributes to prepare your code for serialization and invocation on the blockchain
-// More built-in Rust attributes here: https://doc.rust-lang.org/reference/attributes.html#built-in-attributes-index
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    // See more data types at https://doc.rust-lang.org/book/ch03-02-data-types.html
-    records: UnorderedMap<Vec<u8>, ID>, // did -> [account_id,]
+    records: UnorderedMap<String, Status>,
+    contexts: UnorderedMap<String, Vec<String>>,
+    public_key: UnorderedMap<String, PublicKey>,
+    controller: UnorderedMap<String, Vec<String>>,
+    service: UnorderedMap<String, Service>,
+    created: UnorderedMap<String, u32>,
+    updated: UnorderedMap<String, u32>,
 }
 
 #[near_bindgen]
@@ -25,9 +28,6 @@ impl DID {
         true
     }
 }
-
-
-
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
@@ -63,7 +63,10 @@ mod tests {
         testing_env!(context);
         let mut contract = StatusMessage::default();
         contract.set_status("hello".to_string());
-        assert_eq!("hello".to_string(), contract.get_status("bob_near".to_string()).unwrap());
+        assert_eq!(
+            "hello".to_string(),
+            contract.get_status("bob_near".to_string()).unwrap()
+        );
     }
 
     #[test]

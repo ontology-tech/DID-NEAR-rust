@@ -1,5 +1,18 @@
 use super::*;
 
+pub enum Status {
+    NotExist = 0x00,
+    VALID = 0x01,
+    DeActive = 0x02,
+}
+
+const FIELD_CONTEXT: u8 = 0;
+const FIELD_PK: u8 = 1;
+const FIELD_CONTROLLER: u8 = 2;
+const FIELD_SERVICE: u8 = 3;
+const FIELD_CREATED: u8 = 4;
+const FIELD_UPDATED: u8 = 5;
+
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct PublicKey {
     tp: String,
