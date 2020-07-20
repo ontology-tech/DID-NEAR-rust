@@ -32,7 +32,27 @@ impl DID {
         let status = self.status.get(&did);
         assert!(status.is_none());
         self.status.insert(&did, &Status::VALID);
-        self.public_key.insert(&did, &PublicKey::new_pk_and_auth(&did, account_pk));
+        self.public_key
+            .insert(&did, &PublicKey::new_pk_and_auth(&did, account_pk));
+        let log_message = format!("register: {}", &did);
+        env::log(log_message.as_bytes());
+    }
+    pub fn revoke_id(&mut self) {
+        let account_id = env::signer_account_id();
+        let did = gen_did(&account_id);
+        let status = self.status.get(&did);
+        assert!(status.is_some());
+        self.status.insert(&did, &Status::DeActive);
+        self.public_key.remove(&did);
+        let log_message = format!("revoke_id: {}", &did);
+        env::log(log_message.as_bytes());
+    }
+    pub fn add_key(&mut self, pk: Vec<u8>) {}
+    pub fn remove_key(&mut self, pk: Vec<u8>) {}
+    pub fn add_service(&mut self, ser: Service) {
+        let account_id = env::signer_account_id();
+        let did = gen_did(&account_id);
+        self.service.insert(&did, &ser);
     }
 }
 
