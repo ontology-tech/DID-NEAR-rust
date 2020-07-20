@@ -24,6 +24,19 @@ pub struct PublicKey {
     is_authentication: bool,
 }
 
+impl PublicKey {
+    pub fn new(pk: Vec<u8>) -> Self {
+        PublicKey {
+            tp: "".to_string(),
+            controller: "".to_string(),
+            public_key_base58: "".to_string(),
+            de_actived: false,
+            is_pk_list: true,
+            is_authentication: true,
+        }
+    }
+}
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub struct PublicKeyJson {
     id: String,

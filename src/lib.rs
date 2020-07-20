@@ -1,11 +1,11 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{UnorderedMap, UnorderedSet};
+use near_sdk::AccountId;
 use near_sdk::{env, near_bindgen};
 use serde::{Deserialize, Serialize};
 
 mod basic;
 use basic::*;
-use std::collections::HashMap;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -28,9 +28,25 @@ impl DID {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
 
-        let did = String::from("did:near:") + &account_id;
-        self.status.get(&did);
+        let did = gen_did(&account_id);
+        let status = self.status.get(&did);
+        assert!(status.is_none());
+        self.status.insert(&did, &Status::VALID);
+        self.public_key.insert(&did, &PublicKey::new(account_pk));
     }
+
+    pub fn reg_id_with_controller(&mut self, id: AccountId) {
+        let account_id = env::signer_account_id();
+        let did = gen_did(&account_id);
+        let status = self.status.get(&did);
+        assert!(status.is_none());
+        self.status.insert(&did, &Status::VALID);
+        self.controller.insert(&did, &vec![id]);
+    }
+}
+
+fn gen_did(account_id: &str) -> String {
+    String::from("did:near:") + account_id
 }
 
 #[cfg(not(target_arch = "wasm32"))]
