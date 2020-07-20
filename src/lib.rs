@@ -1,6 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{UnorderedMap, UnorderedSet};
 use near_sdk::{env, near_bindgen};
+use serde::{Deserialize, Serialize};
 
 mod basic;
 use basic::*;
@@ -11,7 +12,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    records: UnorderedMap<String, Status>,
+    status: UnorderedMap<String, Status>,
     contexts: UnorderedMap<String, Vec<String>>,
     public_key: UnorderedMap<String, PublicKey>,
     controller: UnorderedMap<String, Vec<String>>,
@@ -22,7 +23,21 @@ pub struct DID {
 
 #[near_bindgen]
 impl DID {
-    pub fn reg_id(&mut self, id: &[u8]) -> bool {
+    #[init]
+    pub fn new() -> Self {
+        assert!(!env::state_exists(), "Already initialized");
+        let mut did = Self {
+            status: UnorderedMap::default(),
+            contexts: UnorderedMap::default(),
+            public_key: UnorderedMap::default(),
+            controller: UnorderedMap::default(),
+            service: UnorderedMap::default(),
+            created: UnorderedMap::default(),
+            updated: UnorderedMap::default(),
+        };
+        did
+    }
+    pub fn reg_id(&mut self) -> bool {
         let account_id = env::signer_account_id();
         let account_id = env::signer_account_pk();
         true

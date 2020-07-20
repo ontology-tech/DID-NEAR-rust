@@ -42,7 +42,8 @@ pub struct Service {
     service_endpoint: String,
 }
 
-pub struct DocumentJson {
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+pub struct DocumentJson<T> {
     #[serde(rename(serialize = "@contexts", deserialize = "@contexts"))]
     contexts: Vec<String>,
     id: String,
