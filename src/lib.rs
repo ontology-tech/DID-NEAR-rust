@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 mod basic;
 use basic::*;
+use std::collections::HashMap;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -23,10 +24,12 @@ pub struct DID {
 
 #[near_bindgen]
 impl DID {
-    pub fn reg_id(&mut self) -> bool {
+    pub fn reg_id_with_public_key(&mut self) {
         let account_id = env::signer_account_id();
-        let account_id = env::signer_account_pk();
-        true
+        let account_pk = env::signer_account_pk();
+
+        let did = String::from("did:near:") + &account_id;
+        self.status.get(&did);
     }
 }
 
@@ -62,19 +65,7 @@ mod tests {
     fn set_get_message() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let mut contract = StatusMessage::default();
-        contract.set_status("hello".to_string());
-        assert_eq!(
-            "hello".to_string(),
-            contract.get_status("bob_near".to_string()).unwrap()
-        );
-    }
-
-    #[test]
-    fn get_nonexistent_message() {
-        let context = get_context(vec![], true);
-        testing_env!(context);
-        let contract = StatusMessage::default();
-        assert_eq!(None, contract.get_status("francis.near".to_string()));
+        let mut contract = DID::default();
+        contract.reg_id_with_public_key();
     }
 }
