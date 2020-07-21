@@ -14,37 +14,49 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
     status: UnorderedMap<String, Status>,
+    key_index: UnorderedMap<String, u32>,
     contexts: UnorderedMap<String, Vec<String>>,
-    public_key: UnorderedMap<String, PublicKey>,
+    public_key: UnorderedMap<String, Vec<PublicKey>>,
+    authentication: UnorderedMap<String, Vec<u32>>,
     controller: UnorderedMap<String, Vec<String>>,
     service: UnorderedMap<String, Service>,
-    created: UnorderedMap<String, u32>,
-    updated: UnorderedMap<String, u32>,
+    created: UnorderedMap<String, u64>,
+    updated: UnorderedMap<String, u64>,
 }
 
 #[near_bindgen]
 impl DID {
-    pub fn reg_id_with_public_key(&mut self) {
+    pub fn reg_did_using_account(&mut self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
 
-        let did = gen_did(&account_id);
-        let status = self.status.get(&did);
+        let status = self.status.get(&account_id);
         assert!(status.is_none());
-        self.status.insert(&did, &Status::VALID);
-        self.public_key
-            .insert(&did, &PublicKey::new_pk_and_auth(&did, account_pk));
-        let log_message = format!("register: {}", &did);
+        self.status.insert(&account_id, &Status::VALID);
+        self.public_key.insert(
+            &account_id,
+            &vec![PublicKey::new_pk_and_auth(&account_id, account_pk)],
+        );
+        let index: u32 = 0;
+        self.authentication.insert(&account_id, &vec![index]);
+
+        self.created.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!("register: {}", &account_id);
         env::log(log_message.as_bytes());
     }
-    pub fn revoke_id(&mut self) {
+    pub fn deactive_did(&mut self) {
         let account_id = env::signer_account_id();
-        let did = gen_did(&account_id);
-        let status = self.status.get(&did);
+        let status = self.status.get(&account_id);
         assert!(status.is_some());
-        self.status.insert(&did, &Status::DeActive);
-        self.public_key.remove(&did);
-        let log_message = format!("revoke_id: {}", &did);
+        self.status.insert(&account_id, &Status::DeActive);
+        self.contexts.remove(&account_id);
+        self.public_key.remove(&account_id);
+        self.controller.remove(&account_id);
+        self.service.remove(&account_id);
+        self.created.remove(&account_id);
+        self.updated.remove(&account_id);
+        let log_message = format!("deactive: {}", &account_id);
         env::log(log_message.as_bytes());
     }
     pub fn add_key(&mut self, pk: Vec<u8>) {}
