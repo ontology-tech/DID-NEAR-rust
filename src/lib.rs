@@ -19,7 +19,7 @@ pub struct DID {
     public_key: UnorderedMap<String, Vec<PublicKey>>,
     authentication: UnorderedMap<String, Vec<u32>>,
     controller: UnorderedMap<String, Vec<String>>,
-    service: UnorderedMap<String, Service>,
+    service: UnorderedMap<String, Vec<Service>>,
     created: UnorderedMap<String, u64>,
     updated: UnorderedMap<String, u64>,
 }
@@ -45,6 +45,10 @@ impl DID {
         let log_message = format!("register: {}", &account_id);
         env::log(log_message.as_bytes());
     }
+    pub fn get_did(&self, id: AccountId) -> u64 {
+        self.created.get(&id).unwrap()
+    }
+
     pub fn deactive_did(&mut self) {
         let account_id = env::signer_account_id();
         let status = self.status.get(&account_id);
@@ -63,8 +67,60 @@ impl DID {
     pub fn remove_key(&mut self, pk: Vec<u8>) {}
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
-        let did = gen_did(&account_id);
-        self.service.insert(&did, &ser);
+        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let index = sers.iter().position(|x| &x.id == &ser.id);
+        let log_message = format!("method:{}, service id: {}", "add_service", &ser.id);
+        if index.is_none() {
+            sers.push(ser);
+            self.service.insert(&account_id, &sers);
+        }
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn update_service(&mut self, ser: Service) {
+        let account_id = env::signer_account_id();
+        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let index = sers.iter().position(|x| &x.id == &ser.id);
+        let log_message = format!("method:{}, service id: {}", "update_service", &ser.id);
+        if let Some(ind) = index {
+            let res = sers.get_mut(ind).unwrap();
+            res.id = ser.id;
+            res.tp = ser.tp;
+            res.service_endpoint = ser.service_endpoint;
+        }
+        env::log(log_message.as_bytes());
+    }
+    pub fn remove_service(&mut self, ser: Service) {
+        let account_id = env::signer_account_id();
+        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let index = sers.iter().position(|x| &x.id == &ser.id);
+        let log_message = format!("method:{}, service id: {}", "remove_service", &ser.id);
+        if let Some(ind) = index {
+            let res = sers.get_mut(ind).unwrap();
+            res.id = ser.id;
+            res.tp = ser.tp;
+            res.service_endpoint = ser.service_endpoint;
+        }
+        env::log(log_message.as_bytes());
+    }
+    pub fn add_context(&mut self, context: String) {
+        let log_message = format!("method:{}, service id: {}", "add_context", &context);
+        let account_id = env::signer_account_id();
+        let mut cons = self.contexts.get(&account_id).unwrap_or(vec![]);
+        if !cons.contains(&context) {
+            cons.push(context);
+        }
+        env::log(log_message.as_bytes());
+    }
+    pub fn remove_context(&mut self, context: String) {
+        let log_message = format!("method:{}, service id: {}", "remove_context", &context);
+        let account_id = env::signer_account_id();
+        let mut cons = self.contexts.get(&account_id).unwrap_or(vec![]);
+        let index = cons.iter().position(|x| x == &context);
+        if let Some(ind) = index {
+            cons.remove(ind);
+        }
+        env::log(log_message.as_bytes());
     }
 }
 

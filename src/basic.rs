@@ -60,11 +60,11 @@ pub struct PublicKeyJson {
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub struct Service {
-    key: String,
+    pub id: String,
     #[serde(rename(serialize = "type", deserialize = "type"))]
-    tp: String,
+    pub tp: String,
     #[serde(rename(serialize = "serviceEndpoint", deserialize = "serviceEndpoint"))]
-    service_endpoint: String,
+    pub service_endpoint: String,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
