@@ -105,6 +105,5 @@ mod tests {
         let context = get_context(vec![], false);
         testing_env!(context);
         let mut contract = DID::default();
-        contract.reg_id_with_public_key();
     }
 }
