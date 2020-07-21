@@ -14,7 +14,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
     status: UnorderedMap<String, Status>,
-    key_index: UnorderedMap<String, u32>,
     contexts: UnorderedMap<String, Vec<String>>,
     public_key: UnorderedMap<String, Vec<PublicKey>>,
     authentication: UnorderedMap<String, Vec<u32>>,
@@ -29,42 +28,238 @@ impl DID {
     pub fn reg_did_using_account(&mut self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
 
-        let status = self.status.get(&account_id);
+        let status = self.status.get(&did);
         assert!(status.is_none());
-        self.status.insert(&account_id, &Status::VALID);
-        self.public_key.insert(
-            &account_id,
-            &vec![PublicKey::new_pk_and_auth(&account_id, account_pk)],
-        );
+
+        self.status.insert(&did, &Status::VALID);
+        self.public_key
+            .insert(&did, &vec![PublicKey::new_pk_and_auth(&did, account_pk)]);
         let index: u32 = 0;
-        self.authentication.insert(&account_id, &vec![index]);
+        self.authentication.insert(&did, &vec![index]);
+        self.created.insert(&did, &env::block_timestamp());
 
-        self.created.insert(&account_id, &env::block_timestamp());
-
-        let log_message = format!("register: {}", &account_id);
+        let log_message = format!("reg_did_using_account: {}", &did);
         env::log(log_message.as_bytes());
     }
-    pub fn get_did(&self, id: AccountId) -> u64 {
-        self.created.get(&id).unwrap()
-    }
-
     pub fn deactive_did(&mut self) {
         let account_id = env::signer_account_id();
-        let status = self.status.get(&account_id);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        let status = self.status.get(&did);
         assert!(status.is_some());
-        self.status.insert(&account_id, &Status::DeActive);
-        self.contexts.remove(&account_id);
-        self.public_key.remove(&account_id);
-        self.controller.remove(&account_id);
-        self.service.remove(&account_id);
-        self.created.remove(&account_id);
-        self.updated.remove(&account_id);
-        let log_message = format!("deactive: {}", &account_id);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        self.status.insert(&did, &Status::DeActive);
+        self.contexts.remove(&did);
+        self.public_key.remove(&did);
+        self.authentication.remove(&did);
+        self.controller.remove(&did);
+        self.service.remove(&did);
+        self.created.remove(&did);
+        self.updated.remove(&did);
+
+        let log_message = format!("deactive_did: {}", &did);
         env::log(log_message.as_bytes());
     }
-    pub fn add_key(&mut self, pk: Vec<u8>) {}
-    pub fn remove_key(&mut self, pk: Vec<u8>) {}
+
+    pub fn add_controller(&mut self, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+        check_did(&controller);
+        let mut controller_list = self.controller.get(&did).unwrap();
+        if controller_exist(&controller_list, &controller) {
+            env::panic(b"add_controller, controller exists")
+        };
+
+        controller_list.push(controller.clone());
+        self.controller.insert(&did, &controller_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!("add_controller, id:{}, controller: {}", &did, controller);
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn remove_controller(&mut self, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut controller_list = self.controller.get(&did).unwrap();
+        let index = controller_list
+            .iter()
+            .position(|x| x == &controller)
+            .unwrap();
+        controller_list.remove(index);
+        self.controller.insert(&did, &controller_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!("remove_controller, id:{}, controller: {}", &did, controller);
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn add_key(&mut self, pk: Vec<u8>, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+        if pk_exist(&public_key_list, &pk) {
+            env::panic(b"add_key, pk exists")
+        }
+
+        public_key_list.push(PublicKey::new_pk(&did, pk.clone()));
+        self.public_key.insert(&did, &public_key_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!(
+            "add_key, id:{}, public key: {:?}, controller: {}",
+            &did, pk, controller
+        );
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn deactive_key(&mut self, pk: Vec<u8>) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        deactive_pk(&mut public_key_list, &pk);
+        self.public_key.insert(&did, &public_key_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!("deactive_key, id:{}, public key: {:?}", &did, pk);
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn add_new_auth_key(&mut self, pk: Vec<u8>, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+        if pk_exist(&public_key_list, &pk) {
+            env::panic(b"add_new_auth_key, pk exists")
+        }
+
+        public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
+        self.public_key.insert(&did, &public_key_list);
+        let mut authentication_list = self.authentication.get(&did).unwrap();
+        let index: u32 = (public_key_list.len() - 1) as u32;
+        authentication_list.push(index);
+        self.authentication.insert(&did, &authentication_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!(
+            "add_new_auth_key, id:{}, public key: {:?}, controller: {}",
+            &did, pk, controller
+        );
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn set_auth_key(&mut self, pk: Vec<u8>) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let index = set_pk_auth(&mut public_key_list, &pk);
+        self.public_key.insert(&did, &public_key_list);
+        let mut authentication_list = self.authentication.get(&did).unwrap();
+        authentication_list.push(index as u32);
+        self.authentication.insert(&did, &authentication_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!("set_auth_key, id:{}, public key: {:?}", &did, pk);
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn add_new_auth_key_by_controller(&mut self, did: String, pk: Vec<u8>, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let controller_did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        self.check_did_status(&controller_did);
+        let controller_list = self.controller.get(&did).unwrap();
+        if !controller_list.contains(&controller_did) {
+            env::panic(b"add_new_auth_key_by_controller, signer is not controller")
+        }
+        let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
+        check_pk_access(&controller_public_key_list, &account_pk);
+
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        if pk_exist(&public_key_list, &pk) {
+            env::panic(b"add_new_auth_key_by_controller, pk exists")
+        }
+
+        public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
+        self.public_key.insert(&did, &public_key_list);
+        let mut authentication_list = self.authentication.get(&did).unwrap();
+        let index: u32 = (public_key_list.len() - 1) as u32;
+        authentication_list.push(index);
+        self.authentication.insert(&did, &authentication_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!(
+            "add_new_auth_key_by_controller, id:{}, public key: {:?}, controller: {}",
+            &did, pk, controller
+        );
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn set_auth_key_by_controller(&mut self, did: String, pk: Vec<u8>) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+        let controller_did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        self.check_did_status(&controller_did);
+        let controller_list = self.controller.get(&did).unwrap();
+        if !controller_list.contains(&controller_did) {
+            env::panic(b"set_auth_key_by_controller, signer is not controller")
+        }
+        let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
+        check_pk_access(&controller_public_key_list, &account_pk);
+
+        let mut public_key_list = self.public_key.get(&did).unwrap();
+        let index = set_pk_auth(&mut public_key_list, &pk);
+        self.public_key.insert(&did, &public_key_list);
+        let mut authentication_list = self.authentication.get(&did).unwrap();
+        authentication_list.push(index as u32);
+        self.authentication.insert(&did, &authentication_list);
+        self.updated.insert(&did, &env::block_timestamp());
+
+        let log_message = format!(
+            "set_auth_key_by_controller, id:{}, public key: {:?}",
+            &did, pk
+        );
+        env::log(log_message.as_bytes());
+    }
+
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
         let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
@@ -122,10 +317,14 @@ impl DID {
         }
         env::log(log_message.as_bytes());
     }
-}
 
-fn gen_did(account_id: &str) -> String {
-    String::from("did:near:") + account_id
+    fn check_did_status(&self, did: &String) {
+        let status = self.status.get(did).unwrap();
+        match status {
+            Status::VALID => (),
+            _ => env::panic(b"did status is not valid"),
+        };
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
