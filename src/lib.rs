@@ -47,9 +47,12 @@ impl DID {
 
     pub fn deactive_did(&mut self) {
         let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
 
         let status = self.status.get(&account_id);
         assert!(status.is_some());
+        let public_key_list = self.public_key.get(&account_id).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
 
         self.status.insert(&account_id, &Status::DeActive);
         self.contexts.remove(&account_id);
@@ -64,35 +67,105 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    pub fn add_controller(&mut self, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+
+        self.check_did_status(&account_id);
+        let public_key_list = self.public_key.get(&account_id).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+        check_did(&controller);
+        let mut controller_list = self.controller.get(&account_id).unwrap();
+        if controller_exist(&controller_list, &controller) {
+            env::panic(b"add_controller, controller exists")
+        };
+
+        controller_list.push(controller.clone());
+        self.controller.insert(&account_id, &controller_list);
+        self.updated.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!(
+            "add_controller, id:{}, controller: {}",
+            &account_id, controller
+        );
+        env::log(log_message.as_bytes());
+    }
+
+    pub fn remove_controller(&mut self, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+
+        self.check_did_status(&account_id);
+        let public_key_list = self.public_key.get(&account_id).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut controller_list = self.controller.get(&account_id).unwrap();
+        let index = controller_list
+            .iter()
+            .position(|x| x == &controller)
+            .unwrap();
+        controller_list.remove(index);
+        self.controller.insert(&account_id, &controller_list);
+        self.updated.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!(
+            "remove_controller, id:{}, controller: {}",
+            &account_id, controller
+        );
+        env::log(log_message.as_bytes());
+    }
+
     pub fn add_key(&mut self, pk: Vec<u8>, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
 
-        let status = self.status.get(&account_id).unwrap();
-        match status {
-            Status::VALID => (),
-            _ => env::panic(b"did status is not valid"),
-        };
-
+        self.check_did_status(&account_id);
         let mut public_key_list = self.public_key.get(&account_id).unwrap();
-        public_key_list.push(PublicKey::new_pk(&account_id, pk.clone()));
-        self.created.insert(&account_id, &env::block_timestamp());
+        check_pk_access(&public_key_list, &account_pk);
+        if pk_exist(&public_key_list, &pk) {
+            env::panic(b"add_key, pk exists")
+        }
 
-        let log_message = format!("add_key, id:{}, public key: {:?}, controller: {}", &account_id, pk, controller);
+        public_key_list.push(PublicKey::new_pk(&account_id, pk.clone()));
+        self.public_key.insert(&account_id, &public_key_list);
+        self.updated.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!(
+            "add_key, id:{}, public key: {:?}, controller: {}",
+            &account_id, pk, controller
+        );
         env::log(log_message.as_bytes());
     }
 
-    pub fn remove_key(&mut self, pk: Vec<u8>) {}
+    pub fn deactive_key(&mut self, pk: Vec<u8>) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+
+        self.check_did_status(&account_id);
+        let mut public_key_list = self.public_key.get(&account_id).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        deactive_pk(&mut public_key_list, &pk);
+        self.public_key.insert(&account_id, &public_key_list);
+        self.updated.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!("deactive_key, id:{}, public key: {:?}", &account_id, pk);
+        env::log(log_message.as_bytes());
+    }
 
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
         let did = gen_did(&account_id);
         self.service.insert(&did, &ser);
     }
-}
 
-fn gen_did(account_id: &str) -> String {
-    String::from("did:near:") + account_id
+    fn check_did_status(&self, account_id: &AccountId) {
+        let status = self.status.get(account_id).unwrap();
+        match status {
+            Status::VALID => (),
+            _ => env::panic(b"did status is not valid"),
+        };
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
