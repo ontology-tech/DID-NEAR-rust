@@ -65,6 +65,16 @@ impl PublicKey {
             is_authentication: false,
         }
     }
+
+    pub fn new_auth(controller: &str, pk: Vec<u8>) -> Self {
+        PublicKey {
+            controller: controller.to_string(),
+            public_key: pk,
+            deactived: false,
+            is_pk_list: false,
+            is_authentication: true,
+        }
+    }
 }
 
 pub fn pk_exist(key_list: &Vec<PublicKey>, pk: &Vec<u8>) -> bool {
@@ -101,6 +111,22 @@ pub fn check_pk_access(key_list: &Vec<PublicKey>, pk: &Vec<u8>) {
         }
     }
     env::panic(b"check_pk_access, pk doesn't exist")
+}
+
+pub fn set_pk_auth(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) -> usize {
+    for (index, v) in key_list.iter_mut().enumerate() {
+        if &v.public_key == pk {
+            if v.deactived {
+                env::panic(b"set_pk_auth, pk is deactived")
+            }
+            if v.is_authentication {
+                env::panic(b"set_pk_auth, pk is already auth key")
+            }
+            v.is_authentication = true;
+            return index;
+        }
+    }
+    env::panic(b"set_pk_auth, pk doesn't exist")
 }
 
 pub fn controller_exist(controller_list: &Vec<String>, controller: &str) -> bool {
