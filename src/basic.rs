@@ -129,15 +129,6 @@ pub fn set_pk_auth(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) -> usize {
     env::panic(b"set_pk_auth, pk doesn't exist")
 }
 
-pub fn controller_exist(controller_list: &Vec<String>, controller: &str) -> bool {
-    for v in controller_list.iter() {
-        if v.as_str() == controller {
-            return true;
-        }
-    }
-    return false;
-}
-
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub struct PublicKeyJson {
     id: String,

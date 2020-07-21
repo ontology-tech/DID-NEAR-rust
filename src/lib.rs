@@ -71,20 +71,20 @@ impl DID {
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
 
+        let log_message = format!("add_controller, id:{}, controller: {}", &did, &controller);
+
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
         check_pk_access(&public_key_list, &account_pk);
         check_did(&controller);
         let mut controller_list = self.controller.get(&did).unwrap();
-        if controller_exist(&controller_list, &controller) {
+        if controller_list.contains(&controller) {
             env::panic(b"add_controller, controller exists")
         };
 
-        controller_list.push(controller.clone());
+        controller_list.push(controller);
         self.controller.insert(&did, &controller_list);
         self.updated.insert(&did, &env::block_timestamp());
-
-        let log_message = format!("add_controller, id:{}, controller: {}", &did, controller);
         env::log(log_message.as_bytes());
     }
 
@@ -115,6 +115,11 @@ impl DID {
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
 
+        let log_message = format!(
+            "add_key, id:{}, public key: {:?}, controller: {}",
+            &did, &pk, &controller
+        );
+
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
         check_pk_access(&public_key_list, &account_pk);
@@ -122,14 +127,10 @@ impl DID {
             env::panic(b"add_key, pk exists")
         }
 
-        public_key_list.push(PublicKey::new_pk(&did, pk.clone()));
+        public_key_list.push(PublicKey::new_pk(&did, pk));
         self.public_key.insert(&did, &public_key_list);
         self.updated.insert(&did, &env::block_timestamp());
 
-        let log_message = format!(
-            "add_key, id:{}, public key: {:?}, controller: {}",
-            &did, pk, controller
-        );
         env::log(log_message.as_bytes());
     }
 
@@ -162,7 +163,12 @@ impl DID {
             env::panic(b"add_new_auth_key, pk exists")
         }
 
-        public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
+        let log_message = format!(
+            "add_new_auth_key, id:{}, public key: {:?}, controller: {}",
+            &did, &pk, &controller
+        );
+
+        public_key_list.push(PublicKey::new_auth(&did, pk));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let index: u32 = (public_key_list.len() - 1) as u32;
@@ -170,10 +176,6 @@ impl DID {
         self.authentication.insert(&did, &authentication_list);
         self.updated.insert(&did, &env::block_timestamp());
 
-        let log_message = format!(
-            "add_new_auth_key, id:{}, public key: {:?}, controller: {}",
-            &did, pk, controller
-        );
         env::log(log_message.as_bytes());
     }
 
@@ -308,13 +310,13 @@ impl DID {
         env::log(log_message.as_bytes());
     }
     pub fn remove_context(&mut self, context: String) {
-        let log_message = format!("method:{}, service id: {}", "remove_context", &context);
         let account_id = env::signer_account_id();
         let mut cons = self.contexts.get(&account_id).unwrap_or(vec![]);
         let index = cons.iter().position(|x| x == &context);
         if let Some(ind) = index {
             cons.remove(ind);
         }
+        let log_message = format!("method:{}, service id: {}", "remove_context", &context);
         env::log(log_message.as_bytes());
     }
 
@@ -360,5 +362,6 @@ mod tests {
         let context = get_context(vec![], false);
         testing_env!(context);
         let mut contract = DID::default();
+        contract.add_context("test".to_string());
     }
 }
