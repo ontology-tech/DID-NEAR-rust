@@ -14,7 +14,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
     status: UnorderedMap<String, Status>,
-    key_index: UnorderedMap<String, u32>,
     contexts: UnorderedMap<String, Vec<String>>,
     public_key: UnorderedMap<String, Vec<PublicKey>>,
     authentication: UnorderedMap<String, Vec<u32>>,
@@ -32,6 +31,7 @@ impl DID {
 
         let status = self.status.get(&account_id);
         assert!(status.is_none());
+
         self.status.insert(&account_id, &Status::VALID);
         self.public_key.insert(
             &account_id,
@@ -39,28 +39,51 @@ impl DID {
         );
         let index: u32 = 0;
         self.authentication.insert(&account_id, &vec![index]);
-
         self.created.insert(&account_id, &env::block_timestamp());
 
-        let log_message = format!("register: {}", &account_id);
+        let log_message = format!("reg_did_using_account: {}", &account_id);
         env::log(log_message.as_bytes());
     }
+
     pub fn deactive_did(&mut self) {
         let account_id = env::signer_account_id();
+
         let status = self.status.get(&account_id);
         assert!(status.is_some());
+
         self.status.insert(&account_id, &Status::DeActive);
         self.contexts.remove(&account_id);
         self.public_key.remove(&account_id);
+        self.authentication.remove(&account_id);
         self.controller.remove(&account_id);
         self.service.remove(&account_id);
         self.created.remove(&account_id);
         self.updated.remove(&account_id);
-        let log_message = format!("deactive: {}", &account_id);
+
+        let log_message = format!("deactive_did: {}", &account_id);
         env::log(log_message.as_bytes());
     }
-    pub fn add_key(&mut self, pk: Vec<u8>) {}
+
+    pub fn add_key(&mut self, pk: Vec<u8>, controller: String) {
+        let account_id = env::signer_account_id();
+        let account_pk = env::signer_account_pk();
+
+        let status = self.status.get(&account_id).unwrap();
+        match status {
+            Status::VALID => (),
+            _ => env::panic(b"did status is not valid"),
+        };
+
+        let mut public_key_list = self.public_key.get(&account_id).unwrap();
+        public_key_list.push(PublicKey::new_pk(&account_id, pk.clone()));
+        self.created.insert(&account_id, &env::block_timestamp());
+
+        let log_message = format!("add_key, id:{}, public key: {:?}, controller: {}", &account_id, pk, controller);
+        env::log(log_message.as_bytes());
+    }
+
     pub fn remove_key(&mut self, pk: Vec<u8>) {}
+
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
         let did = gen_did(&account_id);

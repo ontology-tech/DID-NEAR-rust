@@ -46,6 +46,16 @@ impl PublicKey {
             is_authentication: true,
         }
     }
+
+    pub fn new_pk(controller: &str, pk: Vec<u8>) -> Self {
+        PublicKey {
+            controller: controller.to_string(),
+            public_key: pk,
+            de_actived: false,
+            is_pk_list: true,
+            is_authentication: false,
+        }
+    }
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
