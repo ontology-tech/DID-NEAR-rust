@@ -122,6 +122,22 @@ pub fn set_pk_auth(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) -> usize {
     env::panic(b"set_pk_auth, pk doesn't exist")
 }
 
+pub fn remove_pk_auth(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) -> usize {
+    for (index, v) in key_list.iter_mut().enumerate() {
+        if &v.public_key == pk {
+            if v.deactivated {
+                env::panic(b"remove_pk_auth, pk is deactivated")
+            }
+            if !v.is_authentication {
+                env::panic(b"remove_pk_auth, pk is not auth key")
+            }
+            v.is_authentication = false;
+            return index;
+        }
+    }
+    env::panic(b"remove_pk_auth, pk doesn't exist")
+}
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub struct PublicKeyJson {
     id: String,
