@@ -1,1 +1,1 @@
-cargo test --package UID-discovery-rust -- --nocapture
+cargo test --package UID-NEAR-rust -- --nocapture
