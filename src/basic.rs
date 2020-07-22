@@ -108,6 +108,7 @@ pub fn check_pk_access(key_list: &Vec<PublicKey>, pk: &Vec<u8>) {
             if !v.is_authentication {
                 env::panic(b"check_pk_access, pk is not authentication")
             }
+            return;
         }
     }
     env::panic(b"check_pk_access, pk doesn't exist")
