@@ -18,7 +18,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub struct DID {
     status: UnorderedMap<String, Status>,
     contexts: UnorderedMap<String, Vec<String>>,
-    public_key: UnorderedMap<String, Vec<PublicKey>>,
+    public_key: UnorderedMap<String, PublicKeyList>,
     authentication: UnorderedMap<String, Vec<u32>>,
     controller: UnorderedMap<String, Vec<String>>,
     service: UnorderedMap<String, Vec<Service>>,
@@ -38,7 +38,7 @@ impl DID {
 
         self.status.insert(&did, &Status::VALID);
         self.public_key
-            .insert(&did, &vec![PublicKey::new_pk_and_auth(&did, account_pk)]);
+            .insert(&did, &PublicKeyList::new_default(&did, account_pk));
         let index: u32 = 0;
         self.authentication.insert(&did, &vec![index]);
         self.created.insert(&did, &env::block_timestamp());
@@ -55,7 +55,7 @@ impl DID {
         let status = self.status.get(&did);
         assert!(status.is_some());
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         self.status.insert(&did, &Status::DEACTIVATED);
         self.contexts.remove(&did);
@@ -79,7 +79,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
         check_did(&controller);
         let mut controller_list = self.controller.get(&did).unwrap_or(vec![]);
         if controller_list.contains(&controller) {
@@ -99,7 +99,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let mut controller_list = self.controller.get(&did).unwrap();
         let index = controller_list
@@ -129,8 +129,8 @@ impl DID {
 
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
-        if pk_exist(&public_key_list, &pk) {
+        public_key_list.check_pk_access(&account_pk);
+        if public_key_list.pk_exist(&pk) {
             env::panic(b"add_key, pk exists")
         }
 
@@ -148,9 +148,9 @@ impl DID {
 
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
-        deactivate_pk(&mut public_key_list, &pk);
+        public_key_list.deactivate_pk(&pk);
         self.public_key.insert(&did, &public_key_list);
         self.updated.insert(&did, &env::block_timestamp());
 
@@ -165,8 +165,8 @@ impl DID {
 
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
-        if pk_exist(&public_key_list, &pk) {
+        public_key_list.check_pk_access(&account_pk);
+        if public_key_list.pk_exist(&pk) {
             env::panic(b"add_new_auth_key, pk exists")
         }
 
@@ -193,9 +193,9 @@ impl DID {
 
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
-        let index = set_pk_auth(&mut public_key_list, &pk);
+        let index = public_key_list.set_pk_auth(&pk);
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         authentication_list.push(index as u32);
@@ -213,9 +213,9 @@ impl DID {
 
         self.check_did_status(&did);
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
-        let index = remove_pk_auth(&mut public_key_list, &pk);
+        let index = public_key_list.remove_pk_auth(&pk);
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let i = authentication_list
@@ -242,17 +242,17 @@ impl DID {
             env::panic(b"add_new_auth_key_by_controller, signer is not controller")
         }
         let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
-        check_pk_access(&controller_public_key_list, &account_pk);
+        controller_public_key_list.check_pk_access(&account_pk);
 
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        if pk_exist(&public_key_list, &pk) {
+        if public_key_list.pk_exist(&pk) {
             env::panic(b"add_new_auth_key_by_controller, pk exists")
         }
 
         public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
-        let index: u32 = (public_key_list.len() - 1) as u32;
+        let index: u32 = public_key_list.len() - 1;
         authentication_list.push(index);
         self.authentication.insert(&did, &authentication_list);
         self.updated.insert(&did, &env::block_timestamp());
@@ -276,10 +276,10 @@ impl DID {
             env::panic(b"set_auth_key_by_controller, signer is not controller")
         }
         let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
-        check_pk_access(&controller_public_key_list, &account_pk);
+        controller_public_key_list.check_pk_access(&account_pk);
 
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        let index = set_pk_auth(&mut public_key_list, &pk);
+        let index = public_key_list.set_pk_auth(&pk);
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         authentication_list.push(index as u32);
@@ -305,10 +305,10 @@ impl DID {
             env::panic(b"deactivate_auth_key_by_controller, signer is not controller")
         }
         let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
-        check_pk_access(&controller_public_key_list, &account_pk);
+        controller_public_key_list.check_pk_access(&account_pk);
 
         let mut public_key_list = self.public_key.get(&did).unwrap();
-        let index = remove_pk_auth(&mut public_key_list, &pk);
+        let index = public_key_list.remove_pk_auth(&pk);
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let i = authentication_list
@@ -333,7 +333,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
@@ -353,7 +353,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
@@ -378,7 +378,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
@@ -400,7 +400,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let log_message = format!("add_context, did:{}, service id: {:?}", &did, &context);
         let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
@@ -420,7 +420,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
 
         let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
         for v in context.iter() {
@@ -441,7 +441,7 @@ impl DID {
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
-        check_pk_access(&public_key_list, &account_pk);
+        public_key_list.check_pk_access(&account_pk);
     }
 
     pub fn verify_controller(&self, did: String) {
@@ -456,7 +456,7 @@ impl DID {
             env::panic(b"verify_controller, signer is not controller")
         }
         let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
-        check_pk_access(&controller_public_key_list, &account_pk);
+        controller_public_key_list.check_pk_access(&account_pk);
     }
 
     fn check_did_status(&self, did: &String) {
