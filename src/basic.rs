@@ -4,7 +4,7 @@ use base58::*;
 #[derive(BorshDeserialize, BorshSerialize)]
 pub enum Status {
     VALID = 0x00,
-    DeActive = 0x01,
+    DEACTIVATED = 0x01,
 }
 
 #[derive(Debug)]
@@ -12,14 +12,6 @@ pub enum KeyType {
     Ed25519VerificationKey2018,
     EcdsaSecp256k1VerificationKey2019,
 }
-
-const FIELD_CONTEXT: u8 = 0;
-const FIELD_PK: u8 = 1;
-const FIELD_CONTROLLER: u8 = 2;
-const FIELD_SERVICE: u8 = 3;
-const FIELD_CREATED: u8 = 4;
-const FIELD_UPDATED: u8 = 5;
-const PUBLIC_KEY_TOTAL_SIZE: u32 = 1024 * 1024;
 
 pub fn gen_did(account_id: &str) -> String {
     String::from("did:near:") + account_id
@@ -34,7 +26,7 @@ pub fn check_did(did: &str) {
 pub struct PublicKey {
     controller: String,
     public_key: Vec<u8>,
-    deactived: bool,
+    deactivated: bool,
     is_pk_list: bool,
     is_authentication: bool,
 }
@@ -50,7 +42,7 @@ impl PublicKey {
         PublicKey {
             controller: controller.to_string(),
             public_key: pk,
-            deactived: false,
+            deactivated: false,
             is_pk_list: true,
             is_authentication: true,
         }
@@ -60,7 +52,7 @@ impl PublicKey {
         PublicKey {
             controller: controller.to_string(),
             public_key: pk,
-            deactived: false,
+            deactivated: false,
             is_pk_list: true,
             is_authentication: false,
         }
@@ -70,7 +62,7 @@ impl PublicKey {
         PublicKey {
             controller: controller.to_string(),
             public_key: pk,
-            deactived: false,
+            deactivated: false,
             is_pk_list: false,
             is_authentication: true,
         }
@@ -86,24 +78,24 @@ pub fn pk_exist(key_list: &Vec<PublicKey>, pk: &Vec<u8>) -> bool {
     return false;
 }
 
-pub fn deactive_pk(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) {
+pub fn deactivate_pk(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) {
     for v in key_list.iter_mut() {
         if &v.public_key == pk {
-            if v.deactived {
-                env::panic(b"deactive_pk, pk is deactived")
+            if v.deactivated {
+                env::panic(b"deactivate_pk, pk is deactivated")
             }
-            v.deactived = true;
+            v.deactivated = true;
             return;
         }
     }
-    env::panic(b"deactive_pk, pk doesn't exist")
+    env::panic(b"deactivate_pk, pk doesn't exist")
 }
 
 pub fn check_pk_access(key_list: &Vec<PublicKey>, pk: &Vec<u8>) {
     for v in key_list.iter() {
         if &v.public_key == pk {
-            if v.deactived {
-                env::panic(b"check_pk_access, pk is deactived")
+            if v.deactivated {
+                env::panic(b"check_pk_access, pk is deactivated")
             }
             if !v.is_authentication {
                 env::panic(b"check_pk_access, pk is not authentication")
@@ -117,8 +109,8 @@ pub fn check_pk_access(key_list: &Vec<PublicKey>, pk: &Vec<u8>) {
 pub fn set_pk_auth(key_list: &mut Vec<PublicKey>, pk: &Vec<u8>) -> usize {
     for (index, v) in key_list.iter_mut().enumerate() {
         if &v.public_key == pk {
-            if v.deactived {
-                env::panic(b"set_pk_auth, pk is deactived")
+            if v.deactivated {
+                env::panic(b"set_pk_auth, pk is deactivated")
             }
             if v.is_authentication {
                 env::panic(b"set_pk_auth, pk is already auth key")

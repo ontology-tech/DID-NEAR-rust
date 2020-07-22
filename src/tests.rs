@@ -29,11 +29,11 @@ fn reg_did_using_account() {
     testing_env!(context);
     let mut contract = DID::default();
     contract.reg_did_using_account();
-    //    contract.deactive_did();
+    //    contract.deactivate_did();
     contract.add_controller("did:near:abcde.testnet".to_string());
     contract.remove_controller("did:near:abcde.testnet".to_string());
     contract.add_key(vec![1u8], "did:near:abcde.testnet".to_string());
-    //    contract.deactive_key(vec![1u8]);
+    //    contract.deactivate_key(vec![1u8]);
     contract.add_new_auth_key(vec![2u8], "did:near:abcde.testnet".to_string());
     contract.set_auth_key(vec![1u8]);
 }

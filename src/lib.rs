@@ -1,6 +1,5 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{UnorderedMap, UnorderedSet};
-use near_sdk::AccountId;
+use near_sdk::collections::{UnorderedMap};
 use near_sdk::{env, near_bindgen};
 use serde::{Deserialize, Serialize};
 
@@ -47,7 +46,7 @@ impl DID {
         let log_message = format!("reg_did_using_account: {}", &did);
         env::log(log_message.as_bytes());
     }
-    pub fn deactive_did(&mut self) {
+    pub fn deactivate_did(&mut self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
@@ -57,7 +56,7 @@ impl DID {
         let public_key_list = self.public_key.get(&did).unwrap();
         check_pk_access(&public_key_list, &account_pk);
 
-        self.status.insert(&did, &Status::DeActive);
+        self.status.insert(&did, &Status::DEACTIVATED);
         self.contexts.remove(&did);
         self.public_key.remove(&did);
         self.authentication.remove(&did);
@@ -66,7 +65,7 @@ impl DID {
         self.created.remove(&did);
         self.updated.remove(&did);
 
-        let log_message = format!("deactive_did: {}", &did);
+        let log_message = format!("deactivate_did: {}", &did);
         env::log(log_message.as_bytes());
     }
 
@@ -75,7 +74,7 @@ impl DID {
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
 
-        let log_message = format!("add_controller, id:{}, controller: {}", &did, &controller);
+        let log_message = format!("add_controller, did:{}, controller: {}", &did, &controller);
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
@@ -110,7 +109,10 @@ impl DID {
         self.controller.insert(&did, &controller_list);
         self.updated.insert(&did, &env::block_timestamp());
 
-        let log_message = format!("remove_controller, id:{}, controller: {}", &did, controller);
+        let log_message = format!(
+            "remove_controller, did:{}, controller: {}",
+            &did, controller
+        );
         env::log(log_message.as_bytes());
     }
 
@@ -120,7 +122,7 @@ impl DID {
         let did = gen_did(&account_id);
 
         let log_message = format!(
-            "add_key, id:{}, public key: {:?}, controller: {}",
+            "add_key, did:{}, public key: {:?}, controller: {}",
             &did, &pk, &controller
         );
 
@@ -138,7 +140,7 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
-    pub fn deactive_key(&mut self, pk: Vec<u8>) {
+    pub fn deactivate_key(&mut self, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
@@ -147,11 +149,11 @@ impl DID {
         let mut public_key_list = self.public_key.get(&did).unwrap();
         check_pk_access(&public_key_list, &account_pk);
 
-        deactive_pk(&mut public_key_list, &pk);
+        deactivate_pk(&mut public_key_list, &pk);
         self.public_key.insert(&did, &public_key_list);
         self.updated.insert(&did, &env::block_timestamp());
 
-        let log_message = format!("deactive_key, id:{}, public key: {:?}", &did, pk);
+        let log_message = format!("deactivate_key, did:{}, public key: {:?}", &did, pk);
         env::log(log_message.as_bytes());
     }
 
@@ -168,7 +170,7 @@ impl DID {
         }
 
         let log_message = format!(
-            "add_new_auth_key, id:{}, public key: {:?}, controller: {}",
+            "add_new_auth_key, did:{}, public key: {:?}, controller: {}",
             &did, &pk, &controller
         );
 
@@ -199,7 +201,7 @@ impl DID {
         self.authentication.insert(&did, &authentication_list);
         self.updated.insert(&did, &env::block_timestamp());
 
-        let log_message = format!("set_auth_key, id:{}, public key: {:?}", &did, pk);
+        let log_message = format!("set_auth_key, did:{}, public key: {:?}", &did, pk);
         env::log(log_message.as_bytes());
     }
 
@@ -231,7 +233,7 @@ impl DID {
         self.updated.insert(&did, &env::block_timestamp());
 
         let log_message = format!(
-            "add_new_auth_key_by_controller, id:{}, public key: {:?}, controller: {}",
+            "add_new_auth_key_by_controller, did:{}, public key: {:?}, controller: {}",
             &did, pk, controller
         );
         env::log(log_message.as_bytes());
@@ -260,7 +262,7 @@ impl DID {
         self.updated.insert(&did, &env::block_timestamp());
 
         let log_message = format!(
-            "set_auth_key_by_controller, id:{}, public key: {:?}",
+            "set_auth_key_by_controller, did:{}, public key: {:?}",
             &did, pk
         );
         env::log(log_message.as_bytes());
@@ -268,59 +270,109 @@ impl DID {
 
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
-        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
-        let log_message = format!("method:{}, service id: {}", "add_service", &ser.id);
-        if index.is_none() {
-            sers.push(ser);
-            self.service.insert(&account_id, &sers);
+        let log_message = format!("add_service, did:{}, service id: {}", &did, &ser.id);
+        if !index.is_none() {
+            env::panic(b"add_service, service exists")
         }
+        sers.push(ser);
+        self.service.insert(&did, &sers);
         env::log(log_message.as_bytes());
     }
 
     pub fn update_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
-        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
-        let log_message = format!("method:{}, service id: {}", "update_service", &ser.id);
-        if let Some(ind) = index {
-            let res = sers.get_mut(ind).unwrap();
-            res.id = ser.id;
-            res.tp = ser.tp;
-            res.service_endpoint = ser.service_endpoint;
+        let log_message = format!("update_service, did:{}, service id: {}", &did, &ser.id);
+        match index {
+            Some(ind) => {
+                let res = sers.get_mut(ind).unwrap();
+                res.id = ser.id;
+                res.tp = ser.tp;
+                res.service_endpoint = ser.service_endpoint;
+                self.service.insert(&did, &sers);
+            }
+            _ => env::panic(b"update_service, service doesn't exist"),
         }
         env::log(log_message.as_bytes());
     }
+
     pub fn remove_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
-        let mut sers = self.service.get(&account_id).unwrap_or(vec![]);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
-        let log_message = format!("method:{}, service id: {}", "remove_service", &ser.id);
-        if let Some(ind) = index {
-            let res = sers.get_mut(ind).unwrap();
-            res.id = ser.id;
-            res.tp = ser.tp;
-            res.service_endpoint = ser.service_endpoint;
+        let log_message = format!("remove_service, did:{}, service id: {}", &did, &ser.id);
+        match index {
+            Some(ind) => {
+                sers.remove(ind);
+                self.service.insert(&did, &sers);
+            }
+            _ => env::panic(b"remove_service, service doesn't exist"),
         }
         env::log(log_message.as_bytes());
     }
-    pub fn add_context(&mut self, context: String) {
-        let log_message = format!("method:{}, service id: {}", "add_context", &context);
+
+    pub fn add_context(&mut self, context: Vec<String>) {
         let account_id = env::signer_account_id();
-        let mut cons = self.contexts.get(&account_id).unwrap_or(vec![]);
-        if !cons.contains(&context) {
-            cons.push(context);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let log_message = format!("add_context, did:{}, service id: {:?}", &did, &context);
+        let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
+        for v in context.iter() {
+            if !cons.contains(v) {
+                cons.push(v.clone());
+            };
         }
+        self.contexts.insert(&did, &cons);
         env::log(log_message.as_bytes());
     }
-    pub fn remove_context(&mut self, context: String) {
+
+    pub fn remove_context(&mut self, context: Vec<String>) {
         let account_id = env::signer_account_id();
-        let mut cons = self.contexts.get(&account_id).unwrap_or(vec![]);
-        let index = cons.iter().position(|x| x == &context);
-        if let Some(ind) = index {
-            cons.remove(ind);
+        let account_pk = env::signer_account_pk();
+        let did = gen_did(&account_id);
+
+        self.check_did_status(&did);
+        let public_key_list = self.public_key.get(&did).unwrap();
+        check_pk_access(&public_key_list, &account_pk);
+
+        let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
+        for v in context.iter() {
+            let index = cons.iter().position(|x| x == v);
+            if let Some(ind) = index {
+                cons.remove(ind);
+            }
         }
-        let log_message = format!("method:{}, service id: {}", "remove_context", &context);
+
+        let log_message = format!("remove_context, did: {}, service id: {:?}", &did, &context);
         env::log(log_message.as_bytes());
     }
 
