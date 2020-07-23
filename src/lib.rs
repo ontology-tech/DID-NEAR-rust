@@ -343,6 +343,7 @@ impl DID {
         }
         sers.push(ser);
         self.service.insert(&did, &sers);
+        self.updated.insert(&did, &env::block_timestamp());
         env::log(log_message.as_bytes());
     }
 
@@ -368,6 +369,7 @@ impl DID {
             }
             _ => env::panic(b"update_service, service doesn't exist"),
         }
+        self.updated.insert(&did, &env::block_timestamp());
         env::log(log_message.as_bytes());
     }
 
@@ -390,6 +392,7 @@ impl DID {
             }
             _ => env::panic(b"remove_service, service doesn't exist"),
         }
+        self.updated.insert(&did, &env::block_timestamp());
         env::log(log_message.as_bytes());
     }
 
@@ -410,6 +413,7 @@ impl DID {
             };
         }
         self.contexts.insert(&did, &cons);
+        self.updated.insert(&did, &env::block_timestamp());
         env::log(log_message.as_bytes());
     }
 
@@ -430,6 +434,7 @@ impl DID {
             }
         }
 
+        self.updated.insert(&did, &env::block_timestamp());
         let log_message = format!("remove_context, did: {}, service id: {:?}", &did, &context);
         env::log(log_message.as_bytes());
     }
@@ -457,6 +462,26 @@ impl DID {
         }
         let controller_public_key_list = self.public_key.get(&controller_did).unwrap();
         controller_public_key_list.check_pk_access(&account_pk);
+    }
+
+    pub fn get_document(&self, did: String) -> Option<String> {
+        let public_key_list = self.public_key.get(&did)?;
+        let pk_list_json = public_key_list.get_pk_json(&did);
+        let auth_index_list = self.authentication.get(&did)?;
+        let authentication_list_json =
+            public_key_list.get_authentication_json(&did, auth_index_list);
+        let document = Document {
+            contexts: self.contexts.get(&did)?,
+            public_key: pk_list_json,
+            authentication: authentication_list_json,
+            controller: self.controller.get(&did)?,
+            service: self.service.get(&did)?,
+            created: self.created.get(&did)?,
+            updated: self.updated.get(&did)?,
+            id: did,
+        };
+        let document_json = serde_json::to_string(&document).unwrap_or("".to_string());
+        Some(document_json)
     }
 
     fn check_did_status(&self, did: &String) {

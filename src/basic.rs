@@ -13,6 +13,17 @@ pub enum KeyType {
     EcdsaSecp256k1VerificationKey2019,
 }
 
+impl KeyType {
+    pub fn to_string(&self) -> String {
+        match self {
+            KeyType::Ed25519VerificationKey2018 => "Ed25519VerificationKey2018".to_string(),
+            KeyType::EcdsaSecp256k1VerificationKey2019 => {
+                "EcdsaSecp256k1VerificationKey2019".to_string()
+            }
+        }
+    }
+}
+
 pub fn gen_did(account_id: &str) -> String {
     String::from("did:near:") + account_id
 }
@@ -33,12 +44,6 @@ pub struct PublicKey {
 
 impl PublicKey {
     pub fn new_pk_and_auth(controller: &str, pk: Vec<u8>) -> Self {
-        //        let mut tp: String = "".to_string();
-        //        match pk[0] {
-        //            0 => tp = ED25519,
-        //            1 => tp = SECP256K1,
-        //            _ => {}
-        //        }
         PublicKey {
             controller: controller.to_string(),
             public_key: pk,
@@ -157,6 +162,56 @@ impl PublicKeyList {
         }
         env::panic(b"remove_pk_auth, pk doesn't exist")
     }
+
+    pub fn get_pk_json(&self, did: &str) -> Vec<PublicKeyJson> {
+        let mut result = vec![];
+        for (i, v) in self.public_key_list.iter().enumerate() {
+            let mut tp: String = "".to_string();
+            match v.public_key[0] {
+                0 => tp = KeyType::Ed25519VerificationKey2018.to_string(),
+                1 => tp = KeyType::EcdsaSecp256k1VerificationKey2019.to_string(),
+                _ => {}
+            }
+            let public_key_json = PublicKeyJson {
+                id: format!("{}#keys-{}", did, i + 1),
+                tp,
+                controller: v.controller.clone(),
+                public_key_base58: v.public_key.to_base58(),
+            };
+            result.push(public_key_json);
+        }
+        result
+    }
+
+    pub fn get_authentication_json(
+        &self,
+        did: &str,
+        authentication_list: Vec<u32>,
+    ) -> Vec<Authentication> {
+        let mut result = vec![];
+        for i in authentication_list.iter() {
+            let public_key: &PublicKey = self.public_key_list.get(*i as usize).unwrap();
+            if public_key.is_pk_list {
+                let authentication = Authentication::Pk(format!("{}#keys-{}", did, i + 1));
+                result.push(authentication);
+            } else {
+                let mut tp: String = "".to_string();
+                match public_key.public_key[0] {
+                    0 => tp = KeyType::Ed25519VerificationKey2018.to_string(),
+                    1 => tp = KeyType::EcdsaSecp256k1VerificationKey2019.to_string(),
+                    _ => {}
+                }
+                let authentication = Authentication::NotPK(PublicKeyJson {
+                    id: format!("{}#keys-{}", did, i + 1),
+                    tp,
+                    controller: public_key.controller.clone(),
+                    public_key_base58: public_key.public_key.to_base58(),
+                });
+                result.push(authentication);
+            }
+        }
+        result
+    }
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -179,15 +234,21 @@ pub struct Service {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
-pub struct DocumentJson<T> {
+pub enum Authentication {
+    Pk(String),
+    NotPK(PublicKeyJson),
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+pub struct Document {
     #[serde(rename(serialize = "@contexts", deserialize = "@contexts"))]
-    contexts: Vec<String>,
-    id: String,
+    pub contexts: Vec<String>,
+    pub id: String,
     #[serde(rename(serialize = "publicKey", deserialize = "publicKey"))]
-    public_key: Vec<PublicKeyJson>,
-    authentication: Vec<T>,
-    controller: Vec<String>,
-    service: Vec<Service>,
-    created: u32,
-    updated: u32,
+    pub public_key: Vec<PublicKeyJson>,
+    pub authentication: Vec<Authentication>,
+    pub controller: Vec<String>,
+    pub service: Vec<Service>,
+    pub created: u64,
+    pub updated: u64,
 }
