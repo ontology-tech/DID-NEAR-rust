@@ -233,6 +233,17 @@ pub struct Service {
     pub service_endpoint: String,
 }
 
+#[cfg(test)]
+impl Service {
+    pub fn new(id: String, tp: String, service_endpoint: String) -> Self {
+        Service {
+            id,
+            tp,
+            service_endpoint,
+        }
+    }
+}
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub enum Authentication {
     Pk(String),

@@ -373,7 +373,7 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
-    pub fn remove_service(&mut self, ser: Service) {
+    pub fn remove_service(&mut self, service_id: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
@@ -383,8 +383,8 @@ impl DID {
         public_key_list.check_pk_access(&account_pk);
 
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
-        let index = sers.iter().position(|x| &x.id == &ser.id);
-        let log_message = format!("remove_service, did:{}, service id: {}", &did, &ser.id);
+        let index = sers.iter().position(|x| &x.id == &service_id);
+        let log_message = format!("remove_service, did:{}, service id: {}", &did, &service_id);
         match index {
             Some(ind) => {
                 sers.remove(ind);
@@ -471,13 +471,13 @@ impl DID {
         let authentication_list_json =
             public_key_list.get_authentication_json(&did, auth_index_list);
         let document = Document {
-            contexts: self.contexts.get(&did)?,
+            contexts: self.contexts.get(&did).unwrap_or(vec![]),
             public_key: pk_list_json,
             authentication: authentication_list_json,
-            controller: self.controller.get(&did)?,
-            service: self.service.get(&did)?,
-            created: self.created.get(&did)?,
-            updated: self.updated.get(&did)?,
+            controller: self.controller.get(&did).unwrap_or(vec![]),
+            service: self.service.get(&did).unwrap_or(vec![]),
+            created: self.created.get(&did).unwrap_or(0),
+            updated: self.updated.get(&did).unwrap_or(0),
             id: did,
         };
         let document_json = serde_json::to_string(&document).unwrap_or("".to_string());
