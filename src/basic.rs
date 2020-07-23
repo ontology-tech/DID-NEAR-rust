@@ -245,6 +245,7 @@ impl Service {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Authentication {
     Pk(String),
     NotPK(PublicKeyJson),
