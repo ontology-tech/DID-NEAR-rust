@@ -25,6 +25,9 @@ mod tests;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const DEFAULT_CONTEXT1: &'static str = "https://www.w3.org/ns/did/v1";
+const DEFAULT_CONTEXT2: &'static str = "https://www.near.org/did/v1";
+
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
@@ -480,7 +483,7 @@ impl DID {
         let log_message = format!("add_context, did:{}, context: {:?}", &did, &context);
         let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
         for v in context.iter() {
-            if !cons.contains(v) {
+            if !cons.contains(v) && v != DEFAULT_CONTEXT1 && v != DEFAULT_CONTEXT2 {
                 cons.push(v.clone());
             };
         }
@@ -549,8 +552,11 @@ impl DID {
         let auth_index_list = self.authentication.get(&did)?;
         let authentication_list_json =
             public_key_list.get_authentication_json(&did, auth_index_list);
+        let mut cts = self.contexts.get(&did).unwrap_or(vec![]);
+        let mut contexts = vec![DEFAULT_CONTEXT1.to_string(), DEFAULT_CONTEXT2.to_string()];
+        contexts.append(&mut cts);
         let document = Document {
-            contexts: self.contexts.get(&did).unwrap_or(vec![]),
+            contexts,
             public_key: pk_list_json,
             authentication: authentication_list_json,
             controller: self.controller.get(&did).unwrap_or(vec![]),
