@@ -555,12 +555,16 @@ impl DID {
         let mut cts = self.contexts.get(&did).unwrap_or(vec![]);
         let mut contexts = vec![DEFAULT_CONTEXT1.to_string(), DEFAULT_CONTEXT2.to_string()];
         contexts.append(&mut cts);
+        let mut service = self.service.get(&did).unwrap_or(vec![]);
+        for v in service.iter_mut() {
+            v.id = format!("{}#{}", &did, v.id);
+        }
         let document = Document {
             contexts,
             public_key: pk_list_json,
             authentication: authentication_list_json,
             controller: self.controller.get(&did).unwrap_or(vec![]),
-            service: self.service.get(&did).unwrap_or(vec![]),
+            service,
             created: self.created.get(&did).unwrap_or(0),
             updated: self.updated.get(&did).unwrap_or(0),
             id: did,
