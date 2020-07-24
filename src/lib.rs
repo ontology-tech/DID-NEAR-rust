@@ -8,7 +8,6 @@
 //! This specification conforms to the requirements specified in the DIDs specification currently published by the W3C Credentials Community Group.
 //!
 
-
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::{env, near_bindgen};
@@ -217,7 +216,7 @@ impl DID {
             &did, &pk, &controller
         );
 
-        public_key_list.push(PublicKey::new_auth(&did, pk));
+        public_key_list.push(PublicKey::new_auth(&controller, pk));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let index: u32 = (public_key_list.len() - 1) as u32;
@@ -303,7 +302,7 @@ impl DID {
             env::panic(b"add_new_auth_key_by_controller, pk exists")
         }
 
-        public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
+        public_key_list.push(PublicKey::new_auth(&controller, pk.clone()));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let index: u32 = public_key_list.len() - 1;
@@ -554,12 +553,16 @@ impl DID {
         let mut cts = self.contexts.get(&did).unwrap_or(vec![]);
         let mut contexts = vec![DEFAULT_CONTEXT1.to_string(), DEFAULT_CONTEXT2.to_string()];
         contexts.append(&mut cts);
+        let mut service = self.service.get(&did).unwrap_or(vec![]);
+        for v in service.iter_mut() {
+            v.id = format!("{}#{}", &did, v.id);
+        }
         let document = Document {
             contexts,
             public_key: pk_list_json,
             authentication: authentication_list_json,
             controller: self.controller.get(&did).unwrap_or(vec![]),
-            service: self.service.get(&did).unwrap_or(vec![]),
+            service,
             created: self.created.get(&did).unwrap_or(0),
             updated: self.updated.get(&did).unwrap_or(0),
             id: did,
