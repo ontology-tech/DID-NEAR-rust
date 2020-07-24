@@ -1,14 +1,13 @@
 //! did_near contract
 //!
 //!
+//! Decentralized identifiers (DIDs) are a new type of identifiers that enables verifiable,
+//! self-sovereign digital identity. This NEAR DID method specification describes a new DID method,
+//! that is, NEAR DID and defines how NEAR blockchain stores NEAR DIDs and their corresponding NEAR DID documents,
+//! and how to do CRUD operations on NEAR DID documents.
+//! This specification conforms to the requirements specified in the DIDs specification currently published by the W3C Credentials Community Group.
 //!
-//!
-//!
-//!
-//!
-//!
-//!
-//!
+
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
@@ -31,14 +30,14 @@ const DEFAULT_CONTEXT2: &'static str = "https://www.near.org/did/v1";
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    status: UnorderedMap<String, Status>, //statu用来存储did的状态，did有两种状态有效和无效。
+    status: UnorderedMap<String, Status>, //Status is used to store the state of did. There are two states of did, valid and invalid.
     contexts: UnorderedMap<String, Vec<String>>, //context。
-    public_key: UnorderedMap<String, PublicKeyList>, //用来存储这个did对应的所有公钥信息
-    authentication: UnorderedMap<String, Vec<u32>>, //
-    controller: UnorderedMap<String, Vec<String>>, //用来存储这个did对应的所有controller信息，controller有权限对这个DID的信息进行更新
+    public_key: UnorderedMap<String, PublicKeyList>, //It is used to store all public key information corresponding to this did
+    authentication: UnorderedMap<String, Vec<u32>>,  //
+    controller: UnorderedMap<String, Vec<String>>, //It is used to store all controller information corresponding to this did. The controller has the authority to update the information of this did
     service: UnorderedMap<String, Vec<Service>>,
-    created: UnorderedMap<String, u64>, // 用来存储did的创建时间
-    updated: UnorderedMap<String, u64>, // 用来存储did的更新时间
+    created: UnorderedMap<String, u64>, // Used to store the creation time of did
+    updated: UnorderedMap<String, u64>, // It is used to store the creation time of did and the update time of did
 }
 
 #[near_bindgen]
