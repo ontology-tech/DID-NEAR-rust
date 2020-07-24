@@ -218,7 +218,7 @@ impl DID {
             &did, &pk, &controller
         );
 
-        public_key_list.push(PublicKey::new_auth(&did, pk));
+        public_key_list.push(PublicKey::new_auth(&controller, pk));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let index: u32 = (public_key_list.len() - 1) as u32;
@@ -304,7 +304,7 @@ impl DID {
             env::panic(b"add_new_auth_key_by_controller, pk exists")
         }
 
-        public_key_list.push(PublicKey::new_auth(&did, pk.clone()));
+        public_key_list.push(PublicKey::new_auth(&controller, pk.clone()));
         self.public_key.insert(&did, &public_key_list);
         let mut authentication_list = self.authentication.get(&did).unwrap();
         let index: u32 = public_key_list.len() - 1;
