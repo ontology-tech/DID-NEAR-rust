@@ -1,3 +1,15 @@
+//! did_near contract
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::{env, near_bindgen};
@@ -16,18 +28,22 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    status: UnorderedMap<String, Status>,
-    contexts: UnorderedMap<String, Vec<String>>,
-    public_key: UnorderedMap<String, PublicKeyList>,
-    authentication: UnorderedMap<String, Vec<u32>>,
-    controller: UnorderedMap<String, Vec<String>>,
+    status: UnorderedMap<String, Status>, //statu用来存储did的状态，did有两种状态有效和无效。
+    contexts: UnorderedMap<String, Vec<String>>, //context。
+    public_key: UnorderedMap<String, PublicKeyList>, //用来存储这个did对应的所有公钥信息
+    authentication: UnorderedMap<String, Vec<u32>>, //
+    controller: UnorderedMap<String, Vec<String>>, //用来存储这个did对应的所有controller信息，controller有权限对这个DID的信息进行更新
     service: UnorderedMap<String, Vec<Service>>,
-    created: UnorderedMap<String, u64>,
-    updated: UnorderedMap<String, u64>,
+    created: UnorderedMap<String, u64>, // 用来存储did的创建时间
+    updated: UnorderedMap<String, u64>, // 用来存储did的更新时间
 }
 
 #[near_bindgen]
 impl DID {
+    /// register did
+    /// this method will store did information on the chain
+    /// this method will output log information in the following format,
+    /// log information: "reg_did_using_account: did:near:abcde.testnet"
     pub fn reg_did_using_account(&mut self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -47,6 +63,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// deactivate_did did
+    /// this method will update did to deactive status, this means the did is a invalid.
+    /// log information: "deactivate_did: did:near:abcde.testnet"
     pub fn deactivate_did(&mut self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -70,12 +89,16 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_controller
+    /// this method will add a controller for the did. controller is also a did, it has the right to update the information of did.
+    /// parameter `controller` is also a did
+    /// log information: "add_controller, did: did:near:abcde.testnet, controller: did:near:abcdefg.testnet"
     pub fn add_controller(&mut self, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
 
-        let log_message = format!("add_controller, did:{}, controller: {}", &did, &controller);
+        let log_message = format!("add_controller, did: {}, controller: {}", &did, &controller);
 
         self.check_did_status(&did);
         let public_key_list = self.public_key.get(&did).unwrap();
@@ -92,6 +115,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// remove_controller
+    /// this method will remove a controller for the did. only the did owner has the right to remove controller.
+    /// parameter `controller` is also a did
+    /// log information: "remove_controller, did: did:near:abcde.testnet, controller: did:near:abcdefg.testnet"
     pub fn remove_controller(&mut self, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -117,6 +144,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_key
+    /// this method will add a public key for the did. only the did owner has the right to add public key.
+    /// parameter `controller` is also a did
+    /// log information: "add_key, did: did:near:abcde.testnet, public key: , controller: did:near:abcdefg.testnet"
     pub fn add_key(&mut self, pk: Vec<u8>, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -141,6 +172,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// deactivate_key
+    /// this method will update a public key to deactive status. only the did owner has the right to invoke this method.
+    /// parameter `pk` is a public key
+    /// log information: "deactivate_key, did: did:near:abcde.testnet, public key: "
     pub fn deactivate_key(&mut self, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -158,6 +193,11 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_new_auth_key
+    /// this method will add a public key to deactive status. only the did owner has the right to invoke this method.
+    /// `pk` is a public key
+    /// `controller` is a did
+    /// log information: "add_new_auth_key, did: did:near:abcde.testnet, public key: ,controller: did:near:abcdefg.testnet"
     pub fn add_new_auth_key(&mut self, pk: Vec<u8>, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -186,6 +226,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// set_auth_key
+    /// this method will set the pk to authentication status. only the did owner has the right to invoke this method.
+    /// `pk` is a public key
+    /// log information: "set_auth_key, did: did:near:abcde.testnet, public key: "
     pub fn set_auth_key(&mut self, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -206,6 +250,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// deactivate_auth_key
+    /// this method will update the pk to authentication invalid status. only the did owner has the right to invoke this method.
+    /// `pk` is a public key
+    /// log information: "deactivate_auth_key, did: did:near:abcde.testnet, public key: "
     pub fn deactivate_auth_key(&mut self, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -230,6 +278,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_new_auth_key_by_controller
+    /// this method will add new auth key by controller. need the controller's signature.
+    /// `pk` is controller's public key
+    /// log information: "add_new_auth_key_by_controller, did: did:near:abcde.testnet, public key: ,controller: did:near:abcdefg.testnet"
     pub fn add_new_auth_key_by_controller(&mut self, did: String, pk: Vec<u8>, controller: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -264,6 +316,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// set_auth_key_by_controller
+    /// this method will set the public key to auth key by controller. need the controller's signature.
+    /// `pk` is controller's public key
+    /// log information: "set_auth_key_by_controller, did: did:near:abcde.testnet, public key: "
     pub fn set_auth_key_by_controller(&mut self, did: String, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -293,6 +349,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// deactivate_auth_key_by_controller
+    /// this method will update the auth public key to invalid status. need the controller's signature.
+    /// `pk` is controller's public key
+    /// log information: "deactivate_auth_key_by_controller, did: did:near:abcde.testnet, public key: "
     pub fn deactivate_auth_key_by_controller(&mut self, did: String, pk: Vec<u8>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -326,6 +386,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_service
+    /// this method will add service to the did.
+    /// log information: "add_service, did: did:near:abcde.testnet, service id: 1234"
     pub fn add_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -338,7 +401,7 @@ impl DID {
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
         let log_message = format!("add_service, did:{}, service id: {}", &did, &ser.id);
-        if !index.is_none() {
+        if index.is_some() {
             env::panic(b"add_service, service exists")
         }
         sers.push(ser);
@@ -347,6 +410,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// update_service
+    /// this method will update service.
+    /// log information: "update_service, did: did:near:abcde.testnet, service id: 1234"
     pub fn update_service(&mut self, ser: Service) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -373,6 +439,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// remove_service
+    /// this method will remove service.
+    /// log information: "remove_service, did: did:near:abcde.testnet, service id: 1234"
     pub fn remove_service(&mut self, service_id: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -396,6 +465,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// add_context
+    /// this method will add context.
+    /// log information: "add_context, did: did:near:abcde.testnet, context: 1234"
     pub fn add_context(&mut self, context: Vec<String>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -405,7 +477,7 @@ impl DID {
         let public_key_list = self.public_key.get(&did).unwrap();
         public_key_list.check_pk_access(&account_pk);
 
-        let log_message = format!("add_context, did:{}, service id: {:?}", &did, &context);
+        let log_message = format!("add_context, did:{}, context: {:?}", &did, &context);
         let mut cons = self.contexts.get(&did).unwrap_or(vec![]);
         for v in context.iter() {
             if !cons.contains(v) {
@@ -417,6 +489,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// remove_context
+    /// this method will remove context.
+    /// log information: "remove_context, did: did:near:abcde.testnet, context: 1234"
     pub fn remove_context(&mut self, context: Vec<String>) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -435,7 +510,7 @@ impl DID {
         }
 
         self.updated.insert(&did, &env::block_timestamp());
-        let log_message = format!("remove_context, did: {}, service id: {:?}", &did, &context);
+        let log_message = format!("remove_context, did: {}, context: {:?}", &did, &context);
         env::log(log_message.as_bytes());
     }
 
@@ -449,6 +524,8 @@ impl DID {
         public_key_list.check_pk_access(&account_pk);
     }
 
+    /// verify_controller
+    /// this method will verify a did is or not the controller.
     pub fn verify_controller(&self, did: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -464,6 +541,8 @@ impl DID {
         controller_public_key_list.check_pk_access(&account_pk);
     }
 
+    /// get_document
+    /// this method query the did information.
     pub fn get_document(&self, did: String) -> Option<String> {
         let public_key_list = self.public_key.get(&did)?;
         let pk_list_json = public_key_list.get_pk_json(&did);
