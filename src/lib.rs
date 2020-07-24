@@ -31,7 +31,7 @@ const DEFAULT_CONTEXT2: &'static str = "https://www.near.org/did/v1";
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    status: UnorderedMap<String, Status>, //statu用来存储did的状态，did有两种状态有效和无效。
+    status: UnorderedMap<String, Status>, //status用来存储did的状态，did有两种状态有效和无效。
     contexts: UnorderedMap<String, Vec<String>>, //context。
     public_key: UnorderedMap<String, PublicKeyList>, //用来存储这个did对应的所有公钥信息
     authentication: UnorderedMap<String, Vec<u32>>, //
