@@ -166,6 +166,9 @@ impl PublicKeyList {
     pub fn get_pk_json(&self, did: &str) -> Vec<PublicKeyJson> {
         let mut result = vec![];
         for (i, v) in self.public_key_list.iter().enumerate() {
+            if !v.is_pk_list {
+                continue;
+            }
             let mut tp: String = "".to_string();
             match v.public_key[0] {
                 0 => tp = KeyType::Ed25519VerificationKey2018.to_string(),
