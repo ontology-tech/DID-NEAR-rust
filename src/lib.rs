@@ -30,10 +30,10 @@ const DEFAULT_CONTEXT2: &'static str = "https://www.near.org/did/v1";
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
     status: UnorderedMap<String, Status>, //Status is used to store the state of did. There are two states of did, valid and invalid.
-    contexts: UnorderedMap<String, Vec<String>>, //context。
+    contexts: UnorderedMap<String, Vec<String>>, //context.
     public_key: UnorderedMap<String, PublicKeyList>, //It is used to store all public key information corresponding to this did
     authentication: UnorderedMap<String, Vec<u32>>,  //
-    controller: UnorderedMap<String, Vec<String>>, //It is used to store all controller information corresponding to this did. The controller has the authority to update the information of this did
+    controller: UnorderedMap<String, Vec<String>>, //It is used to store all controller information corresponding to this did. The controller has the authority to update the information of this did.
     service: UnorderedMap<String, Vec<Service>>,
     created: UnorderedMap<String, u64>, // Used to store the creation time of did
     updated: UnorderedMap<String, u64>, // It is used to store the creation time of did and the update time of did
