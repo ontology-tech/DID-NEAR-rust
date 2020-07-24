@@ -29,13 +29,15 @@ fn controller_test() {
     testing_env!(context);
     let mut contract = DID::default();
     contract.reg_did_using_account();
-    let doc = contract.get_document("did:near:bob_near".to_string());
-    assert!(doc.is_some());
 
     //    contract.deactivate_did();
     let did = "did:near:abcde.testnet".to_string();
     contract.add_controller(did.clone());
     contract.remove_controller(did.clone());
+
+    let doc = contract.get_document(did.clone());
+    assert!(doc.is_some());
+    println!("doc2:{}", doc.unwrap());
 }
 
 #[test]
@@ -56,15 +58,16 @@ fn auth_key_test() {
     let did = "did:near:bob_near".to_string();
     let pk = vec![0u8, 1u8];
     contract.add_new_auth_key_by_controller(did.clone(), pk.clone(), controller.clone());
-
     contract.verify_controller(did.clone());
-
-    let doc = contract.get_document(did.clone());
 
     let pk = vec![0u8, 1u8, 3u8];
     contract.add_key(pk.clone(), "did:near:abcde.testnet".to_string());
     contract.set_auth_key_by_controller(did.clone(), pk.clone());
     contract.deactivate_auth_key_by_controller(did.clone(), pk.clone());
+
+    let doc = contract.get_document(did.clone());
+    assert!(doc.is_some());
+    println!("res:{}", doc.unwrap());
 }
 
 #[test]
