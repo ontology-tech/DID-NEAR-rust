@@ -6,15 +6,15 @@ near login
 
 2. 
 ```
-near deploy --wasmFile output/UID_discovery_rust_optimized.wasm --accountId abcde.testnet
+near deploy --wasmFile output/DID_NEAR_rust_optimized.wasm --accountId test_did.testnet
 ```
 
 3. 
 ```
-near call abcde.testnet reg_did_using_account --accountId abcdefg.testnet
+near call test_did.testnet reg_did_using_account --accountId test_did.testnet
 ```
 
 4. 
 ```
-ear view abcde.testnet get_did '{"id":"abcde.testnet"}' --accountId abcde.testnet
+near view test_did.testnet get_document '{"did":"did:near:test_did.testnet"}' --accountId test_did.testnet
 ```
