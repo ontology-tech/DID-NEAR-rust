@@ -160,13 +160,14 @@ impl DID {
         );
 
         self.check_did_status(&did);
+        check_did(&controller);
         let mut public_key_list = self.public_key.get(&did).unwrap();
         public_key_list.check_pk_access(&account_pk);
         if public_key_list.pk_exist(&pk) {
             env::panic(b"add_key, pk exists")
         }
 
-        public_key_list.push(PublicKey::new_pk(&did, pk));
+        public_key_list.push(PublicKey::new_pk(&controller, pk));
         self.public_key.insert(&did, &public_key_list);
         self.updated.insert(&did, &env::block_timestamp());
 
@@ -205,6 +206,7 @@ impl DID {
         let did = gen_did(&account_id);
 
         self.check_did_status(&did);
+        check_did(&controller);
         let mut public_key_list = self.public_key.get(&did).unwrap();
         public_key_list.check_pk_access(&account_pk);
         if public_key_list.pk_exist(&pk) {
@@ -290,6 +292,7 @@ impl DID {
 
         self.check_did_status(&did);
         self.check_did_status(&controller_did);
+        check_did(&controller);
         let controller_list = self.controller.get(&did).unwrap();
         if !controller_list.contains(&controller_did) {
             env::panic(b"add_new_auth_key_by_controller, signer is not controller")
