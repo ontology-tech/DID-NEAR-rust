@@ -29,27 +29,27 @@ const DEFAULT_CONTEXT2: &'static str = "https://www.near.org/did/v1";
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct DID {
-    /// Status is used to store the state of did. There are two states of did, valid and invalid.
+    /// Status is used to store the state of DID. There are two states of DID, valid and invalid.
     pub status: UnorderedMap<String, Status>,
     /// context.
     pub contexts: UnorderedMap<String, Vec<String>>,
-    /// It is used to store all public key information corresponding to this did
+    /// It is used to store all public key information corresponding to this DID
     pub public_key: UnorderedMap<String, PublicKeyList>,
     pub authentication: UnorderedMap<String, Vec<u32>>, //
-    /// It is used to store all controller information corresponding to this did. The controller has the authority to update the information of this did.
+    /// It is used to store all controller information corresponding to this DID. The controller has the authority to update the information of this did.
     pub controller: UnorderedMap<String, Vec<String>>,
     pub service: UnorderedMap<String, Vec<Service>>,
-    /// Used to store the creation time of did
+    /// Used to store the creation time of DID
     pub created: UnorderedMap<String, u64>,
-    /// Used to store the update time of did
+    /// Used to store the update time of DID
     pub updated: UnorderedMap<String, u64>,
 }
 
 #[near_bindgen]
 impl DID {
-    /// register did
+    /// register DID
     ///
-    /// this method will store did information on the chain
+    /// this method will store DID information on the chain
     ///
     /// this method will output log information in the following format,
     ///
@@ -73,9 +73,9 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
-    /// deactivate_did did
+    /// deactivate_did DID
     ///
-    /// this method will update did to deactive status, this means the did is a invalid.
+    /// this method will update DID to deactive status, this means the DID is a invalid.
     ///
     /// log information: "deactivate_did: did:near:abcde.testnet"
     pub fn deactivate_did(&mut self) {
@@ -103,9 +103,9 @@ impl DID {
 
     /// add_controller
     ///
-    /// this method will add a controller for the did. controller is also a did, it has the right to update the information of did.
+    /// this method will add a controller for the DID. controller is also a DID, it has the right to update the information of DID.
     ///
-    /// parameter `controller` is also a did
+    /// parameter `controller` is also a DID
     ///
     /// log information: "add_controller, did: did:near:abcde.testnet, controller: did:near:abcdefg.testnet"
     ///
@@ -133,9 +133,9 @@ impl DID {
 
     /// remove_controller
     ///
-    /// this method will remove a controller for the did. only the did owner has the right to remove controller.
+    /// this method will remove a controller for the DID. only the DID owner has the right to remove controller.
     ///
-    /// parameter `controller` is also a did
+    /// parameter `controller` is also a DID
     ///
     /// log information: "remove_controller, did: did:near:abcde.testnet, controller: did:near:abcdefg.testnet"
     ///
@@ -166,9 +166,9 @@ impl DID {
 
     /// add_key
     ///
-    /// this method will add a public key for the did. only the did owner has the right to add public key.
+    /// this method will add a public key for the DID. only the DID owner has the right to add public key.
     ///
-    /// parameter `controller` is also a did
+    /// parameter `controller` is also a DID
     ///
     /// log information: "add_key, did: did:near:abcde.testnet, public key: , controller: did:near:abcdefg.testnet"
     ///
@@ -199,7 +199,7 @@ impl DID {
 
     /// deactivate_key
     ///
-    /// this method will update a public key to deactive status. only the did owner has the right to invoke this method.
+    /// this method will update a public key to deactive status. only the DID owner has the right to invoke this method.
     ///
     /// parameter `pk` is a public key
     ///
@@ -224,11 +224,11 @@ impl DID {
 
     /// add_new_auth_key
     ///
-    /// this method will add a public key to deactive status. only the did owner has the right to invoke this method.
+    /// this method will add a public key to deactive status. only the DID owner has the right to invoke this method.
     ///
     /// `pk` is a public key
     ///
-    /// `controller` is a did
+    /// `controller` is a DID
     ///
     /// log information: "add_new_auth_key, did: did:near:abcde.testnet, public key: ,controller: did:near:abcdefg.testnet"
     ///
@@ -263,7 +263,7 @@ impl DID {
 
     /// set_auth_key
     ///
-    /// this method will set the pk to authentication status. only the did owner has the right to invoke this method.
+    /// this method will set the pk to authentication status. only the DID owner has the right to invoke this method.
     ///
     /// `pk` is a public key
     ///
@@ -291,7 +291,7 @@ impl DID {
 
     /// deactivate_auth_key
     ///
-    /// this method will update the pk to authentication invalid status. only the did owner has the right to invoke this method.
+    /// this method will update the pk to authentication invalid status. only the DID owner has the right to invoke this method.
     ///
     /// `pk` is a public key
     ///
@@ -444,7 +444,7 @@ impl DID {
 
     /// add_service
     ///
-    /// this method will add service to the did.
+    /// this method will add service to the DID.
     ///
     /// log information: "add_service, did: did:near:abcde.testnet, service id: 1234"
     ///
@@ -603,6 +603,8 @@ impl DID {
     ///
     /// this method will verify a transaction is signed by did controller.
     ///
+    /// this method will verify a DID is or not the controller.
+    ///
     pub fn verify_controller(&self, did: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -621,6 +623,8 @@ impl DID {
     /// get_document
     ///
     /// this method query the did document, return json string.
+    ///
+    /// this method query the DID information.
     ///
     pub fn get_document(&self, did: String) -> Option<String> {
         let public_key_list = self.public_key.get(&did)?;
