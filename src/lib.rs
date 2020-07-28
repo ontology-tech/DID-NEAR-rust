@@ -41,7 +41,7 @@ pub struct DID {
     pub service: UnorderedMap<String, Vec<Service>>,
     /// Used to store the creation time of did
     pub created: UnorderedMap<String, u64>,
-    /// It is used to store the update time of did
+    /// Used to store the update time of did
     pub updated: UnorderedMap<String, u64>,
 }
 
