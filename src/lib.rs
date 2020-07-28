@@ -585,6 +585,10 @@ impl DID {
         env::log(log_message.as_bytes());
     }
 
+    /// verify_signature
+    ///
+    /// this method will verify a transaction is signed by did athentication key.
+    ///
     pub fn verify_signature(&self) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
@@ -597,7 +601,7 @@ impl DID {
 
     /// verify_controller
     ///
-    /// this method will verify a did is or not the controller.
+    /// this method will verify a transaction is signed by did controller.
     ///
     pub fn verify_controller(&self, did: String) {
         let account_id = env::signer_account_id();
@@ -616,7 +620,7 @@ impl DID {
 
     /// get_document
     ///
-    /// this method query the did information.
+    /// this method query the did document, return json string.
     ///
     pub fn get_document(&self, did: String) -> Option<String> {
         let public_key_list = self.public_key.get(&did)?;
