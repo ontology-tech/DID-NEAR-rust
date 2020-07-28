@@ -35,7 +35,7 @@ pub struct DID {
     pub contexts: UnorderedMap<String, Vec<String>>,
     /// It is used to store all public key information corresponding to this did
     pub public_key: UnorderedMap<String, PublicKeyList>,
-    pub authentication: UnorderedMap<String, Vec<u32>>,  //
+    pub authentication: UnorderedMap<String, Vec<u32>>, //
     /// It is used to store all controller information corresponding to this did. The controller has the authority to update the information of this did.
     pub controller: UnorderedMap<String, Vec<String>>,
     pub service: UnorderedMap<String, Vec<Service>>,
