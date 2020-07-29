@@ -79,10 +79,8 @@ fn service_test() {
     testing_env!(context);
     let mut contract = DID::default();
     contract.reg_did_using_account();
-    let ser = Service::new("id".to_string(), "tp".to_string(), "ss".to_string());
-    contract.add_service(ser);
-    let ser = Service::new("id".to_string(), "tp2".to_string(), "ss2".to_string());
-    contract.update_service(ser);
+    contract.add_service("id".to_string(), "tp".to_string(), "ss".to_string());
+    contract.update_service("id".to_string(), "tp2".to_string(), "ss2".to_string());
     contract.remove_service("id".to_string());
 }
 
@@ -126,10 +124,8 @@ fn get_document_test() {
     contract.add_controller("did:near:abcde.testnet".to_string());
     let con = vec!["conext".to_string()];
     contract.add_context(con.clone());
-    let ser = Service::new("id".to_string(), "tp".to_string(), "ss".to_string());
-    contract.add_service(ser);
-    let ser = Service::new("id".to_string(), "tp2".to_string(), "ss2".to_string());
-    contract.update_service(ser);
+    contract.add_service("id".to_string(), "tp".to_string(), "ss".to_string());
+    contract.update_service("id".to_string(), "tp2".to_string(), "ss2".to_string());
 
     let did = "did:near:bob_near".to_string();
     let res = contract.get_document(did.clone());

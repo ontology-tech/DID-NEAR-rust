@@ -448,7 +448,7 @@ impl DID {
     ///
     /// log information: "add_service, did: did:near:abcde.testnet, service id: 1234"
     ///
-    pub fn add_service(&mut self, ser: Service) {
+    pub fn add_service(&mut self, service_id: String, service_type: String, endpoint: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
@@ -457,6 +457,11 @@ impl DID {
         let public_key_list = self.public_key.get(&did).unwrap();
         public_key_list.check_pk_access(&account_pk);
 
+        let ser = Service {
+            id: service_id,
+            tp: service_type,
+            service_endpoint: endpoint,
+        };
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
         let log_message = format!("add_service, did:{}, service id: {}", &did, &ser.id);
@@ -475,7 +480,7 @@ impl DID {
     ///
     /// log information: "update_service, did: did:near:abcde.testnet, service id: 1234"
     ///
-    pub fn update_service(&mut self, ser: Service) {
+    pub fn update_service(&mut self, service_id: String, service_type: String, endpoint: String) {
         let account_id = env::signer_account_id();
         let account_pk = env::signer_account_pk();
         let did = gen_did(&account_id);
@@ -484,6 +489,11 @@ impl DID {
         let public_key_list = self.public_key.get(&did).unwrap();
         public_key_list.check_pk_access(&account_pk);
 
+        let ser = Service {
+            id: service_id,
+            tp: service_type,
+            service_endpoint: endpoint,
+        };
         let mut sers = self.service.get(&did).unwrap_or(vec![]);
         let index = sers.iter().position(|x| &x.id == &ser.id);
         let log_message = format!("update_service, did:{}, service id: {}", &did, &ser.id);
